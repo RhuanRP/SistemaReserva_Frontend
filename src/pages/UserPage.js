@@ -135,12 +135,18 @@ const UserPage = () => {
 
           return (
             <div key={timerUserId} className={styles.timer}>
-              <p>
-                Usuário {timerUserId}: {Math.floor(timeLeft)}s restantes
-              </p>
+              <div className={styles.timerInfo}>
+                <span className={styles.timerIcon}>⏳</span>
+                <span className={styles.timerText}>
+                  Usuário {timerUserId}
+                </span>
+                <span className={styles.timerCountdown}>
+                  {Math.floor(timeLeft)}s restantes
+                </span>
+              </div>
               {timerUserId === userId && (
                 <button
-                  className={styles.button}
+                  className={styles.timerButton}
                   onClick={() => setConfirmingEvent(timer.event_id)}
                 >
                   Confirmar Reserva
@@ -155,33 +161,48 @@ const UserPage = () => {
       {confirmingEvent && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
-            <h2>Confirme sua Reserva</h2>
-            <input
-              type="text"
-              placeholder="Seu Nome"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className={styles.input}
-            />
-            <input
-              type="text"
-              placeholder="Seu Telefone"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              className={styles.input}
-            />
-            <button
-              className={styles.button}
-              onClick={handleConfirmReservation}
-            >
-              Confirmar
-            </button>
-            <button
-              className={styles.cancelButton}
-              onClick={() => setConfirmingEvent(null)}
-            >
-              Cancelar
-            </button>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Confirme sua Reserva</h2>
+              <p className={styles.modalSubtitle}>
+                Preencha seus dados para finalizar a reserva
+              </p>
+            </div>
+            <div className={styles.modalForm}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Nome Completo</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className={styles.input}
+                  placeholder="Digite seu nome completo"
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Telefone</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className={styles.input}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className={styles.modalButtons}>
+                <button
+                  className={styles.confirmButton}
+                  onClick={handleConfirmReservation}
+                >
+                  Confirmar Reserva
+                </button>
+                <button
+                  className={styles.cancelButton}
+                  onClick={() => setConfirmingEvent(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

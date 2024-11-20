@@ -1,41 +1,111 @@
 .container {
-  margin: 20px;
-  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .header {
   text-align: center;
-  margin-bottom: 20px;
-  color: #333;
+  margin-bottom: 40px;
+  color: #1a1a1a;
+  font-size: 2rem;
+  font-weight: 600;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.formGroup {
+  background-color: #f8f9fa;
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 32px;
 }
 
-.form-group label {
+.formGroup h2 {
+  color: #2c3e50;
+  margin-bottom: 24px;
+  font-size: 1.5rem;
+  font-weight: 500;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 12px;
+}
+
+.formGroup label {
   display: block;
-  margin-bottom: 5px;
-  color: #555;
+  margin-bottom: 8px;
+  color: #495057;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
-.form-group input {
+.formGroup input {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+}
+
+.formGroup input:hover {
+  border-color: #ced4da;
 }
 
 .button {
-  padding: 10px 20px;
+  width: 100%;
+  padding: 14px 24px;
   border: none;
-  border-radius: 5px;
-  background-color: #28a745;
+  border-radius: 6px;
+  background-color: #228be6;
   color: white;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 10px;
 }
 
 .button:hover {
-  background-color: #218838;
+  background-color: #1c7ed6;
+  transform: translateY(-1px);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .container {
+    margin: 20px;
+    padding: 16px;
+  }
+
+  .header {
+    font-size: 1.75rem;
+    margin-bottom: 30px;
+  }
+
+  .formGroup {
+    padding: 16px;
+  }
+}
+
+/* Feedback visual para estados de input */
+.formGroup input:invalid {
+  border-color: #fa5252;
+}
+
+.formGroup input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
 }
