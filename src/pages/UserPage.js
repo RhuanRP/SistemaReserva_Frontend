@@ -20,6 +20,9 @@ const UserPage = () => {
 
   // Estado para mensagens de feedback
   const [feedback, setFeedback] = useState('')
+  const [confirmingEvent, setConfirmingEvent] = useState(null) // Evento atual para confirmação
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
 
   const handleReservation = async eventId => {
     try {
@@ -45,6 +48,43 @@ const UserPage = () => {
       }
     } catch (error) {
       setFeedback('Erro ao realizar a reserva. Tente novamente mais tarde.')
+    }
+  }
+
+  const handleConfirmReservation = async () => {
+    if (!name || !phone) {
+      setFeedback('Por favor, preencha seu nome e telefone.')
+      return
+    }
+
+    try {
+      const response = await fetch(
+        'http://localhost:8000/confirm-reservation/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            event_id: confirmingEvent,
+            user_id: userId,
+            name,
+            phone
+          })
+        }
+      )
+
+      if (response.ok) {
+        setFeedback('Reserva confirmada com sucesso!')
+        setConfirmingEvent(null) // Fecha o modal
+        setName('')
+        setPhone('')
+      } else {
+        const error = await response.json()
+        setFeedback(`Erro: ${error.detail}`)
+      }
+    } catch (error) {
+      setFeedback('Erro ao confirmar a reserva. Tente novamente mais tarde.')
     }
   }
 
@@ -89,16 +129,62 @@ const UserPage = () => {
 
       <div className={styles.section}>
         <h2>Timers</h2>
-        {Object.entries(timers).map(([userId, timer]) => {
+        {Object.entries(timers).map(([timerUserId, timer]) => {
           const expiresAt = new Date(timer.expires_at)
           const timeLeft = Math.max(0, (expiresAt - new Date()) / 1000)
+
           return (
-            <p key={userId}>
-              Usuário {userId}: {Math.floor(timeLeft)}s restantes
-            </p>
+            <div key={timerUserId} className={styles.timer}>
+              <p>
+                Usuário {timerUserId}: {Math.floor(timeLeft)}s restantes
+              </p>
+              {timerUserId === userId && (
+                <button
+                  className={styles.button}
+                  onClick={() => setConfirmingEvent(timer.event_id)}
+                >
+                  Confirmar Reserva
+                </button>
+              )}
+            </div>
           )
         })}
       </div>
+
+      {/* Modal de confirmação */}
+      {confirmingEvent && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h2>Confirme sua Reserva</h2>
+            <input
+              type="text"
+              placeholder="Seu Nome"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className={styles.input}
+            />
+            <input
+              type="text"
+              placeholder="Seu Telefone"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className={styles.input}
+            />
+            <button
+              className={styles.button}
+              onClick={handleConfirmReservation}
+            >
+              Confirmar
+            </button>
+            <button
+              className={styles.cancelButton}
+              onClick={() => setConfirmingEvent(null)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
