@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates'
 import styles from '../styles/UserPage.module.css'
 import { v4 as uuidv4 } from 'uuid'
@@ -16,13 +16,81 @@ const UserPage = () => {
     }
   })
 
-  const { events, online_users, queue, timers } = useRealTimeUpdates(userId)
+  const {
+    events,
+    online_users,
+    queue,
+    timers,
+    user_status,
+    interaction_timeout,
+    was_moved_to_queue: wasMovedToQueue,
+    isConnected,
+    isActive,
+    timeLeft,
+    userStatus
+  } = useRealTimeUpdates(userId)
 
   // Estado para mensagens de feedback
   const [feedback, setFeedback] = useState('')
   const [confirmingEvent, setConfirmingEvent] = useState(null) // Evento atual para confirmação
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+
+  // Estado local para o timer
+  const [localTimer, setLocalTimer] = useState(30)
+
+  // Efeito para atualizar o timer local
+  useEffect(() => {
+    if (interaction_timeout > 0) {
+      setLocalTimer(interaction_timeout)
+    }
+  }, [interaction_timeout])
+
+  // Timer visual que atualiza a cada segundo
+  useEffect(() => {
+    let interval
+    if (user_status === 'active' && localTimer > 0) {
+      interval = setInterval(() => {
+        setLocalTimer(prev => Math.max(0, prev - 1))
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [user_status, localTimer])
+
+  // Componente para exibir o status do usuário e timer
+  const UserStatus = () => {
+    if (isActive && timeLeft > 0) {
+      const timerColor = timeLeft < 10 ? '#ff4444' : '#4CAF50'
+      return (
+        <div
+          className={`${styles.statusBar} ${
+            timeLeft < 10 ? styles.warning : ''
+          }`}
+        >
+          <div className={styles.statusContent}>
+            <span className={styles.statusText}>{userStatus.message}</span>
+            <span className={styles.timer}>Tempo restante: {timeLeft}s</span>
+          </div>
+          <div
+            className={styles.timerBar}
+            style={{
+              width: `${(timeLeft / 30) * 100}%`,
+              backgroundColor: timerColor,
+              transition: 'all 1s linear'
+            }}
+          />
+        </div>
+      )
+    } else if (userStatus.type === 'queue') {
+      return (
+        <div className={styles.statusBar}>
+          <span>{userStatus.message}</span>
+          <div className={styles.queueInfo}>Aguarde sua vez...</div>
+        </div>
+      )
+    }
+    return null
+  }
 
   const handleReservation = async eventId => {
     try {
@@ -90,7 +158,30 @@ const UserPage = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.header}>Usuário - Sistema de Reserva de Eventos</h1>
+      <h1 className={styles.header}>Sistema de Reserva de Eventos</h1>
+
+      {/* Status de Conexão com animação */}
+      <div
+        className={`${styles.connectionStatus} ${
+          isConnected ? styles.connected : styles.disconnected
+        }`}
+      >
+        <span className={styles.statusDot} />
+        {isConnected ? 'Conectado' : 'Reconectando...'}
+      </div>
+
+      {/* Status do Usuário e Timer */}
+      <UserStatus />
+
+      {/* Feedback de movimento para fila com animação */}
+      {wasMovedToQueue && (
+        <div
+          className={`${styles.feedback} ${styles.warning} ${styles.slideIn}`}
+        >
+          <span className={styles.warningIcon}>⚠️</span>
+          Você foi movido para o final da fila por inatividade.
+        </div>
+      )}
 
       {/* Mensagem de Feedback */}
       {feedback && <div className={styles.feedback}>{feedback}</div>}
@@ -101,7 +192,10 @@ const UserPage = () => {
           <h2>Seu Timer Ativo</h2>
           <div className={styles.timerContainer}>
             {Object.entries(timers)
-              .sort(([, a], [, b]) => new Date(b.expires_at) - new Date(a.expires_at))
+              .sort(
+                ([, a], [, b]) =>
+                  new Date(b.expires_at) - new Date(a.expires_at)
+              )
               .map(([timerUserId, timer]) => {
                 const expiresAt = new Date(timer.expires_at)
                 const timeLeft = Math.max(0, (expiresAt - new Date()) / 1000)
@@ -111,7 +205,9 @@ const UserPage = () => {
                     <div className={styles.timerInfo}>
                       <span className={styles.timerIcon}>⏳</span>
                       <span className={styles.timerText}>
-                        {timerUserId === userId ? 'Seu timer' : `Usuário ${timerUserId}`}
+                        {timerUserId === userId
+                          ? 'Seu timer'
+                          : `Usuário ${timerUserId}`}
                       </span>
                       <span className={styles.timerCountdown}>
                         {Math.floor(timeLeft)}s restantes
