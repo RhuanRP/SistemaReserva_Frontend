@@ -160,7 +160,7 @@ const UserPage = () => {
     <div className={styles.container}>
       <h1 className={styles.header}>Sistema de Reserva de Eventos</h1>
 
-      {/* Status de Conexão com animação */}
+      {/* Status de Conexão e UserStatus permanecem no topo */}
       <div
         className={`${styles.connectionStatus} ${
           isConnected ? styles.connected : styles.disconnected
@@ -169,9 +169,48 @@ const UserPage = () => {
         <span className={styles.statusDot} />
         {isConnected ? 'Conectado' : 'Reconectando...'}
       </div>
-
-      {/* Status do Usuário e Timer */}
       <UserStatus />
+
+      {/* Layout principal com grid */}
+      <div className={styles.mainLayout}>
+        {/* Coluna principal com eventos */}
+        <div className={styles.mainContent}>
+          <div className={styles.section}>
+            <h2>Eventos Disponíveis</h2>
+            <div className={styles.gridContainer}>
+              {events.map(event => (
+                <div key={event.id} className={styles.card}>
+                  <h3>{event.name}</h3>
+                  <p>Vagas disponíveis: {event.available_slots}</p>
+                  <button
+                    className={styles.button}
+                    onClick={() => handleReservation(event.id)}
+                  >
+                    Reservar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar direita */}
+        <div className={styles.sidebar}>
+          <div className={styles.section}>
+            <h2>Usuários Online</h2>
+            <p>Total: {online_users.length}</p>
+          </div>
+
+          <div className={styles.section}>
+            <h2>Fila de Espera</h2>
+            <ul className={styles.list}>
+              {queue.map((user, index) => (
+                <li key={index}>{user}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
 
       {/* Feedback de movimento para fila com animação */}
       {wasMovedToQueue && (
@@ -227,38 +266,6 @@ const UserPage = () => {
           </div>
         </div>
       )}
-
-      <div className={styles.section}>
-        <h2>Usuários Online</h2>
-        <p>Total: {online_users.length}</p>
-      </div>
-
-      <div className={styles.section}>
-        <h2>Fila de Espera</h2>
-        <ul className={styles.list}>
-          {queue.map((user, index) => (
-            <li key={index}>{user}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className={styles.section}>
-        <h2>Eventos Disponíveis</h2>
-        <div className={styles.gridContainer}>
-          {events.map(event => (
-            <div key={event.id} className={styles.card}>
-              <h3>{event.name}</h3>
-              <p>Vagas disponíveis: {event.available_slots}</p>
-              <button
-                className={styles.button}
-                onClick={() => handleReservation(event.id)}
-              >
-                Reservar
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Modal de confirmação */}
       {confirmingEvent && (

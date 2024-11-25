@@ -8,8 +8,8 @@ function App() {
 
   return (
     <div className="app-container">
-      <aside className="sidebar">
-        <h2 className="sidebar-title">Menu</h2>
+      <header className="header">
+        <h2 className="header-title">Menu</h2>
         <select
           className="menu-select"
           value={menu}
@@ -18,7 +18,7 @@ function App() {
           <option value="Usuário">Usuário</option>
           <option value="Administrador">Administrador</option>
         </select>
-      </aside>
+      </header>
       <main className="content">
         {menu === 'Usuário' ? <UserPage /> : <AdminPage />}
       </main>
