@@ -3,6 +3,111 @@ import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates'
 import styles from '../styles/UserPage.module.css'
 import { v4 as uuidv4 } from 'uuid'
 
+const ConfirmationModal = React.memo(
+  ({
+    modalTimer,
+    name,
+    setName,
+    phone,
+    setPhone,
+    handleConfirmReservation,
+    handleCloseModal
+  }) => (
+    <div className={styles.modal}>
+      <div className={styles.modalContent}>
+        <div className={styles.modalHeader}>
+          <div
+            className={`${styles.modalTimer} ${
+              modalTimer < 30 ? styles.warning : ''
+            }`}
+          >
+            Tempo restante: {modalTimer}s
+            <div
+              className={styles.modalTimerBar}
+              style={{ width: `${(modalTimer / 120) * 100}%` }}
+            />
+          </div>
+          <h2 className={styles.modalTitle}>Confirme sua Reserva</h2>
+          <p className={styles.modalSubtitle}>
+            Preencha seus dados para finalizar a reserva
+          </p>
+        </div>
+        <div className={styles.modalForm}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Nome Completo</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className={styles.input}
+              placeholder="Digite seu nome completo"
+            />
+          </div>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Telefone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className={styles.input}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div className={styles.modalButtons}>
+            <button
+              className={styles.confirmButton}
+              onClick={handleConfirmReservation}
+            >
+              Confirmar Reserva
+            </button>
+            <button className={styles.cancelButton} onClick={handleCloseModal}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+)
+
+// Mova o UserStatus para fora do componente principal e use React.memo
+const UserStatus = React.memo(({ isActive, timeLeft, userStatus }) => {
+  if (isActive && timeLeft > 0) {
+    const timerColor = timeLeft < 10 ? '#ff4444' : '#4CAF50'
+    return (
+      <div className={`${styles.statusBar} ${timeLeft < 10 ? styles.warning : ''}`}>
+        <div className={styles.statusContent}>
+          <span className={styles.statusText}>
+            {timeLeft > 0
+              ? `Tempo para interagir: ${timeLeft}s`
+              : 'Tempo esgotado!'}
+          </span>
+          <span className={styles.timer}>{userStatus.message}</span>
+        </div>
+        <div
+          className={styles.timerBar}
+          style={{
+            width: `${(timeLeft / 30) * 100}%`,
+            backgroundColor: timerColor
+          }}
+        />
+      </div>
+    )
+  } else if (userStatus.type === 'queue') {
+    return (
+      <div className={styles.statusBar}>
+        <div className={styles.statusContent}>
+          <span className={styles.statusText}>{userStatus.message}</span>
+          <div className={styles.queueInfo}>
+            Aguarde sua vez... Posição: {userStatus.position}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  return null
+})
+
 const UserPage = () => {
   // Gerar user_id único
   const [userId] = useState(() => {
@@ -39,6 +144,10 @@ const UserPage = () => {
   // Estado local para o timer
   const [localTimer, setLocalTimer] = useState(30)
 
+  // Novo estado para controlar o timer do modal
+  const [modalTimer, setModalTimer] = useState(120)
+  const [modalTimerInterval, setModalTimerInterval] = useState(null)
+
   // Efeito para atualizar o timer local
   useEffect(() => {
     if (interaction_timeout > 0) {
@@ -57,43 +166,9 @@ const UserPage = () => {
     return () => clearInterval(interval)
   }, [user_status, localTimer])
 
-  // Componente para exibir o status do usuário e timer
-  const UserStatus = () => {
-    if (isActive && timeLeft > 0) {
-      const timerColor = timeLeft < 10 ? '#ff4444' : '#4CAF50'
-      return (
-        <div
-          className={`${styles.statusBar} ${
-            timeLeft < 10 ? styles.warning : ''
-          }`}
-        >
-          <div className={styles.statusContent}>
-            <span className={styles.statusText}>{userStatus.message}</span>
-            <span className={styles.timer}>Tempo restante: {timeLeft}s</span>
-          </div>
-          <div
-            className={styles.timerBar}
-            style={{
-              width: `${(timeLeft / 30) * 100}%`,
-              backgroundColor: timerColor,
-              transition: 'all 1s linear'
-            }}
-          />
-        </div>
-      )
-    } else if (userStatus.type === 'queue') {
-      return (
-        <div className={styles.statusBar}>
-          <span>{userStatus.message}</span>
-          <div className={styles.queueInfo}>Aguarde sua vez...</div>
-        </div>
-      )
-    }
-    return null
-  }
-
   const handleReservation = async eventId => {
     try {
+      // Primeiro, criar a reserva temporária
       const response = await fetch('http://localhost:8000/reservations/', {
         method: 'POST',
         headers: {
@@ -106,19 +181,59 @@ const UserPage = () => {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setFeedback(
-          `Reserva criada com sucesso para o evento: ${data.event.name}`
-        )
+        // Se a reserva temporária for criada com sucesso, abrir o modal
+        setConfirmingEvent(eventId)
+        setModalTimer(120)
+
+        // Inicia o timer do modal
+        const interval = setInterval(() => {
+          setModalTimer(prev => {
+            if (prev <= 1) {
+              clearInterval(interval)
+              setConfirmingEvent(null)
+              setModalTimer(120)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+
+        setModalTimerInterval(interval)
       } else {
         const error = await response.json()
-        setFeedback(`Erro: ${error.detail}`)
+        setFeedback(
+          `Erro: ${error.detail || 'Não foi possível criar a reserva'}`
+        )
       }
     } catch (error) {
-      setFeedback('Erro ao realizar a reserva. Tente novamente mais tarde.')
+      console.error('Erro ao criar reserva temporária:', error)
+      setFeedback('Erro ao criar reserva. Tente novamente mais tarde.')
     }
   }
 
+  // Limpa o intervalo quando o componente é desmontado ou o modal é fechado
+  useEffect(() => {
+    return () => {
+      if (modalTimerInterval) {
+        clearInterval(modalTimerInterval)
+      }
+    }
+  }, [modalTimerInterval])
+
+  // Atualiza a função de fechar o modal
+  const handleCloseModal = () => {
+    if (modalTimerInterval) {
+      clearInterval(modalTimerInterval)
+      setModalTimerInterval(null)
+    }
+    setConfirmingEvent(null)
+    setModalTimer(120)
+    setName('')
+    setPhone('')
+    setFeedback('')
+  }
+
+  // Atualiza a função de confirmar reserva
   const handleConfirmReservation = async () => {
     if (!name || !phone) {
       setFeedback('Por favor, preencha seu nome e telefone.')
@@ -136,22 +251,24 @@ const UserPage = () => {
           body: JSON.stringify({
             event_id: confirmingEvent,
             user_id: userId,
-            name,
-            phone
+            name: name.trim(),
+            phone: phone.replace(/\D/g, '')
           })
         }
       )
 
+      const data = await response.json()
+
       if (response.ok) {
-        setFeedback('Reserva confirmada com sucesso!')
-        setConfirmingEvent(null) // Fecha o modal
-        setName('')
-        setPhone('')
+        handleCloseModal()
+        setTimeout(() => {
+          setFeedback('Reserva confirmada com sucesso!')
+        }, 100)
       } else {
-        const error = await response.json()
-        setFeedback(`Erro: ${error.detail}`)
+        setFeedback(`Erro: ${data.detail || 'Erro ao confirmar reserva'}`)
       }
     } catch (error) {
+      console.error('Erro ao confirmar a reserva:', error)
       setFeedback('Erro ao confirmar a reserva. Tente novamente mais tarde.')
     }
   }
@@ -169,7 +286,11 @@ const UserPage = () => {
         <span className={styles.statusDot} />
         {isConnected ? 'Conectado' : 'Reconectando...'}
       </div>
-      <UserStatus />
+      <UserStatus 
+        isActive={isActive}
+        timeLeft={timeLeft}
+        userStatus={userStatus}
+      />
 
       {/* Layout principal com grid */}
       <div className={styles.mainLayout}>
@@ -269,52 +390,15 @@ const UserPage = () => {
 
       {/* Modal de confirmação */}
       {confirmingEvent && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>Confirme sua Reserva</h2>
-              <p className={styles.modalSubtitle}>
-                Preencha seus dados para finalizar a reserva
-              </p>
-            </div>
-            <div className={styles.modalForm}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Nome Completo</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className={styles.input}
-                  placeholder="Digite seu nome completo"
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Telefone</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  className={styles.input}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div className={styles.modalButtons}>
-                <button
-                  className={styles.confirmButton}
-                  onClick={handleConfirmReservation}
-                >
-                  Confirmar Reserva
-                </button>
-                <button
-                  className={styles.cancelButton}
-                  onClick={() => setConfirmingEvent(null)}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ConfirmationModal
+          modalTimer={modalTimer}
+          name={name}
+          setName={setName}
+          phone={phone}
+          setPhone={setPhone}
+          handleConfirmReservation={handleConfirmReservation}
+          handleCloseModal={handleCloseModal}
+        />
       )}
     </div>
   )

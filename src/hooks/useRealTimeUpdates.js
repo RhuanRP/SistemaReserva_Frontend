@@ -10,13 +10,13 @@ export function useRealTimeUpdates(userId) {
     queue: [],
     timers: {},
     user_status: null,
-    total_connected: 0,
-    interaction_timeout: 0,
+    interaction_timeout: 30,
     was_moved_to_queue: false
   })
 
   const [isConnected, setIsConnected] = useState(false)
-  const [localTimer, setLocalTimer] = useState(0)
+  const [interactionTimer, setInteractionTimer] = useState(30)
+  const [wasMovedToQueue, setWasMovedToQueue] = useState(false)
 
   const { sendMessage, lastMessage, readyState } = useWebSocket(SOCKET_URL, {
     queryParams: { user_id: userId },
@@ -34,8 +34,7 @@ export function useRealTimeUpdates(userId) {
     },
     shouldReconnect: closeEvent => true,
     reconnectInterval: 3000,
-    reconnectAttempts: 10,
-    share: false // Não compartilhar conexão entre instâncias
+    reconnectAttempts: 10
   })
 
   // Processar mensagens recebidas
@@ -43,51 +42,49 @@ export function useRealTimeUpdates(userId) {
     if (lastMessage !== null) {
       try {
         const updates = JSON.parse(lastMessage.data)
+        console.log('Received updates:', updates) // Debug
+
+        // Verifica se o usuário foi movido para a fila
+        const previousStatus = data.user_status
+        const newStatus = updates.user_status
+
+        if (previousStatus === 'active' && newStatus?.startsWith('queue_')) {
+          setWasMovedToQueue(true)
+          setTimeout(() => setWasMovedToQueue(false), 5000)
+        }
+
+        // Atualiza o timer com o valor do servidor
+        if (typeof updates.interaction_timeout === 'number') {
+          setInteractionTimer(updates.interaction_timeout)
+        }
+
         setData(prevData => ({
           ...prevData,
-          ...updates,
-          was_moved_to_queue: updates.was_moved_to_queue || false
+          ...updates
         }))
-
-        // Atualiza o timer local se receber um novo valor
-        if (updates.interaction_timeout !== undefined) {
-          setLocalTimer(updates.interaction_timeout)
-        }
       } catch (e) {
         console.error('Erro ao analisar mensagem WebSocket:', e)
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, data.user_status])
 
-  // Timer local para atualizações suaves
-  useEffect(() => {
-    let interval
-    if (isConnected && data.user_status === 'active' && localTimer > 0) {
-      interval = setInterval(() => {
-        setLocalTimer(prev => Math.max(0, prev - 1))
-      }, 1000)
-    }
-    return () => clearInterval(interval)
-  }, [isConnected, data.user_status, localTimer])
-
-  // Enviar heartbeat
+  // Enviar heartbeat periódico para manter a conexão ativa
   useEffect(() => {
     let heartbeatInterval
     if (isConnected) {
       heartbeatInterval = setInterval(() => {
         sendMessage('heartbeat')
-      }, 15000)
+      }, 1000) // Reduzido para 1 segundo para manter o timer atualizado
     }
     return () => clearInterval(heartbeatInterval)
   }, [isConnected, sendMessage])
 
-  // Função auxiliar para verificar status do usuário
   const getUserStatus = useCallback(() => {
     if (data.user_status === 'active') {
       return {
         type: 'active',
         message: 'Ativo - Você pode interagir com os eventos',
-        timeLeft: localTimer
+        timeLeft: interactionTimer
       }
     } else if (data.user_status?.startsWith('queue_')) {
       const position = data.user_status.split('_')[1]
@@ -101,7 +98,7 @@ export function useRealTimeUpdates(userId) {
       type: 'disconnected',
       message: 'Desconectado'
     }
-  }, [data.user_status, localTimer])
+  }, [data.user_status, interactionTimer])
 
   return {
     ...data,
@@ -109,9 +106,8 @@ export function useRealTimeUpdates(userId) {
     userStatus: getUserStatus(),
     sendMessage,
     isActive: data.user_status === 'active',
-    timeLeft: localTimer,
-    wasMovedToQueue: data.was_moved_to_queue,
-    // Helpers adicionais
+    timeLeft: interactionTimer,
+    wasMovedToQueue,
     isInQueue: data.user_status?.startsWith('queue_'),
     queuePosition: data.user_status?.startsWith('queue_')
       ? parseInt(data.user_status.split('_')[1])

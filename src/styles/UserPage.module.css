@@ -199,19 +199,6 @@
   align-items: center;
   backdrop-filter: blur(8px);
   z-index: 1000;
-  animation: modalFadeIn 0.3s ease;
-}
-
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 .modalContent {
@@ -222,7 +209,7 @@
   max-width: 480px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   position: relative;
-  animation: modalSlideIn 0.3s ease;
+  animation: modalSlideIn 0.3s ease forwards;
 }
 
 @keyframes modalSlideIn {
@@ -489,6 +476,19 @@
   align-items: center;
   z-index: 1;
   position: relative;
+  min-height: 24px;
+}
+
+.statusText {
+  color: #2c3e50;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.timer {
+  color: #2c3e50;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .timerBar {
@@ -497,7 +497,7 @@
   left: 0;
   height: 4px;
   background-color: #4CAF50;
-  transition: width 1s linear, background-color 0.3s ease;
+  transition: width 1s linear;
 }
 
 .warning .timerBar {
@@ -510,7 +510,6 @@
   height: 8px;
   border-radius: 50%;
   margin-right: 8px;
-  animation: pulse 2s infinite;
 }
 
 .connected .statusDot {
@@ -519,20 +518,6 @@
 
 .disconnected .statusDot {
   background-color: #ff4444;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-
-  100% {
-    opacity: 1;
-  }
 }
 
 .slideIn {
@@ -580,4 +565,34 @@
     order: -1;
     /* Move a sidebar para cima em telas menores */
   }
+}
+
+.modalTimer {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: #2c3e50;
+  position: relative;
+  overflow: hidden;
+}
+
+.modalTimerBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background-color: #4361ee;
+  transition: width 1s linear;
+}
+
+/* Quando o timer estiver baixo */
+.modalTimer.warning {
+  color: #dc3545;
+}
+
+.modalTimer.warning .modalTimerBar {
+  background-color: #dc3545;
 }
