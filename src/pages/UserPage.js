@@ -75,7 +75,9 @@ const UserStatus = React.memo(({ isActive, timeLeft, userStatus }) => {
   if (isActive && timeLeft > 0) {
     const timerColor = timeLeft < 10 ? '#ff4444' : '#4CAF50'
     return (
-      <div className={`${styles.statusBar} ${timeLeft < 10 ? styles.warning : ''}`}>
+      <div
+        className={`${styles.statusBar} ${timeLeft < 10 ? styles.warning : ''}`}
+      >
         <div className={styles.statusContent}>
           <span className={styles.statusText}>
             {timeLeft > 0
@@ -286,7 +288,7 @@ const UserPage = () => {
         <span className={styles.statusDot} />
         {isConnected ? 'Conectado' : 'Reconectando...'}
       </div>
-      <UserStatus 
+      <UserStatus
         isActive={isActive}
         timeLeft={timeLeft}
         userStatus={userStatus}
@@ -304,10 +306,18 @@ const UserPage = () => {
                   <h3>{event.name}</h3>
                   <p>Vagas disponíveis: {event.available_slots}</p>
                   <button
-                    className={styles.button}
+                    className={`${styles.button} ${
+                      !isActive ? styles.buttonDisabled : ''
+                    }`}
                     onClick={() => handleReservation(event.id)}
+                    disabled={!isActive}
+                    title={
+                      !isActive
+                        ? 'Você precisa estar ativo para fazer reservas'
+                        : ''
+                    }
                   >
-                    Reservar
+                    {isActive ? 'Reservar' : 'Aguarde sua vez'}
                   </button>
                 </div>
               ))}
@@ -345,48 +355,6 @@ const UserPage = () => {
 
       {/* Mensagem de Feedback */}
       {feedback && <div className={styles.feedback}>{feedback}</div>}
-
-      {/* Seção de Timers - só aparece quando há timers ativos */}
-      {Object.keys(timers).length > 0 && (
-        <div className={`${styles.section} ${styles.timerSection}`}>
-          <h2>Seu Timer Ativo</h2>
-          <div className={styles.timerContainer}>
-            {Object.entries(timers)
-              .sort(
-                ([, a], [, b]) =>
-                  new Date(b.expires_at) - new Date(a.expires_at)
-              )
-              .map(([timerUserId, timer]) => {
-                const expiresAt = new Date(timer.expires_at)
-                const timeLeft = Math.max(0, (expiresAt - new Date()) / 1000)
-
-                return (
-                  <div key={timerUserId} className={styles.timer}>
-                    <div className={styles.timerInfo}>
-                      <span className={styles.timerIcon}>⏳</span>
-                      <span className={styles.timerText}>
-                        {timerUserId === userId
-                          ? 'Seu timer'
-                          : `Usuário ${timerUserId}`}
-                      </span>
-                      <span className={styles.timerCountdown}>
-                        {Math.floor(timeLeft)}s restantes
-                      </span>
-                    </div>
-                    {timerUserId === userId && (
-                      <button
-                        className={styles.timerButton}
-                        onClick={() => setConfirmingEvent(timer.event_id)}
-                      >
-                        Confirmar Reserva
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-          </div>
-        </div>
-      )}
 
       {/* Modal de confirmação */}
       {confirmingEvent && (

@@ -37,14 +37,12 @@ export function useRealTimeUpdates(userId) {
     reconnectAttempts: 10
   })
 
-  // Processar mensagens recebidas
   useEffect(() => {
     if (lastMessage !== null) {
       try {
         const updates = JSON.parse(lastMessage.data)
-        console.log('Received updates:', updates) // Debug
+        console.log('Received updates:', updates)
 
-        // Verifica se o usuário foi movido para a fila
         const previousStatus = data.user_status
         const newStatus = updates.user_status
 
@@ -53,7 +51,6 @@ export function useRealTimeUpdates(userId) {
           setTimeout(() => setWasMovedToQueue(false), 5000)
         }
 
-        // Atualiza o timer com o valor do servidor
         if (typeof updates.interaction_timeout === 'number') {
           setInteractionTimer(updates.interaction_timeout)
         }
@@ -68,13 +65,12 @@ export function useRealTimeUpdates(userId) {
     }
   }, [lastMessage, data.user_status])
 
-  // Enviar heartbeat periódico para manter a conexão ativa
   useEffect(() => {
     let heartbeatInterval
     if (isConnected) {
       heartbeatInterval = setInterval(() => {
         sendMessage('heartbeat')
-      }, 1000) // Reduzido para 1 segundo para manter o timer atualizado
+      }, 1000)
     }
     return () => clearInterval(heartbeatInterval)
   }, [isConnected, sendMessage])
@@ -87,11 +83,13 @@ export function useRealTimeUpdates(userId) {
         timeLeft: interactionTimer
       }
     } else if (data.user_status?.startsWith('queue_')) {
-      const position = data.user_status.split('_')[1]
-      return {
-        type: 'queue',
-        message: `Na fila - Posição ${position}`,
-        position: parseInt(position)
+      const position = parseInt(data.user_status.split('_')[1])
+      if (!isNaN(position)) {
+        return {
+          type: 'queue',
+          message: `Na fila - Posição ${position}`,
+          position: position
+        }
       }
     }
     return {
@@ -110,7 +108,7 @@ export function useRealTimeUpdates(userId) {
     wasMovedToQueue,
     isInQueue: data.user_status?.startsWith('queue_'),
     queuePosition: data.user_status?.startsWith('queue_')
-      ? parseInt(data.user_status.split('_')[1])
+      ? parseInt(data.user_status.split('_')[1]) || null
       : null
   }
 }
